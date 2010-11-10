@@ -6,15 +6,15 @@
      (- (.getTime (Date.)) (.getTime date))))
 
 (defn wrap-session-expiry [handler expire-sec]
-  (fn [{{date :date :as req-session} :session :as request}]
+  (fn [{{date ::date :as req-session} :session :as request}]
     (let [request  (if (and date (expire? date expire-sec))
 		     (assoc request :session {})
 		     request)
 	  response (handler request)]
       (if (contains? response :session)
 	(if (response :session)
-	  (assoc-in response [:session :date] (Date.))
+	  (assoc-in response [:session ::date] (Date.))
 	  response)
 	(if (empty? req-session)
 	  response
-	  (assoc-in response [:session :date] (Date.)))))))
+	  (assoc response :session (assoc req-session ::date (Date.))))))))
