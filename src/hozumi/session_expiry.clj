@@ -7,10 +7,12 @@
 
 (defn wrap-session-expiry [handler expire-sec]
   (let [expire-ms (* 1000 expire-sec)]
-    (fn [{{date ::date :as req-session} :session :as request}]
-      (let [request  (if (and date (expire? date expire-ms))
+    (fn [{{date ::date} :session :as request}]
+      (let [expired?  (and date (expire? date expire-ms))
+	    request  (if expired?
 		       (assoc request :session {})
 		       request)
+	    req-session (:session request)
 	    response (handler request)]
 	(if (contains? response :session)
 	  (if (response :session)
