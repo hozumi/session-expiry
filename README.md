@@ -2,7 +2,7 @@
 
 Session-expiry is a Clojure/Ring middleware that set session expiration.
 Sessions are expired after a specified time from the last access.
-Expired session is removed when request come, but session id isn't changed.
+Expired session is removed when request come, so when request doesn't come expired session isn't removed. When session is removed, session id might not be changed or be changed. It depends on whether :session key is in the response map.
 
 ## Usage
 
