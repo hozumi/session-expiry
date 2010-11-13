@@ -8,10 +8,13 @@
   (condp = (:uri req)
       "/change" (let [v (.toString (Math/random))]
 		  {:session {:myvalue v}
-		   :body v})
-      "/stay"   {:body (-> req :session :myvalue)}
+		   :body {:before (-> req :session :myvalue)
+			  :after v}})
+      "/stay"   {:body {:before (-> req :session :myvalue)
+			:after (-> req :session :myvalue)}}
       "/remove" {:session nil
-		 :body (-> req :session :myvalue)}))
+		 :body {:before (-> req :session :myvalue)
+			:after nil}}))
 
 (def app (-> handler
 	     (wrap-session-expiry 2)
@@ -33,29 +36,34 @@
 			:cookies {"ring-session" {:value sess-key}}})]
     (is (get-in response1 [:headers "Set-Cookie"]))
     (is (nil? (get-in response2 [:headers "Set-Cookie"])))
-    (is (= (:body response1) (:body response2)))
+    (is (= (get-in response1 [:body :after])
+	   (get-in response2 [:body :after])))
     (is (nil? (get-in response3 [:headers "Set-Cookie"])))
-    (is (not= (:body response1) (:body response3)))
+    (is (not= (get-in response1 [:body :after])
+	      (get-in response3 [:body :after])))
     (Thread/sleep 3000)
     (let [response4 (app {:uri "/stay"
 			  :cookies {"ring-session" {:value sess-key}}})
-	  response5 (app {:uri "/stay"
+	  response5 (app {:uri "/change"
 			  :cookies {"ring-session" {:value sess-key}}})
-	  response6 (app {:uri "/change"
-			  :cookies {"ring-session" {:value sess-key}}})
-	  response7 (app {:uri "/stay"
+	  response6 (app {:uri "/stay"
 			  :cookies {"ring-session" {:value sess-key}}})]
       (is (nil? (get-in response4 [:headers "Set-Cookie"])))
-      (is (not= (:body response3) (:body response4)))
-      (is (not= (:body response3) (:body response5)))
-      (is (= (:body response6) (:body response7)))
+      (is (nil? (get-in response4 [:body :after])))
+      (is (not= (get-in response3 [:body :after])
+		(get-in response4 [:body :before])))
+      (is (not= (get-in response3 [:body :after])
+		(get-in response5 [:body :before])))
+      (is (= (get-in response5 [:body :after])
+	     (get-in response6 [:body :after])))
       (Thread/sleep 1500)
       (app {:uri "/stay"
 	    :cookies {"ring-session" {:value sess-key}}})
       (Thread/sleep 1500)
-      (let [response8 (app {:uri "/stay"
+      (let [response7 (app {:uri "/stay"
 			    :cookies {"ring-session" {:value sess-key}}})]
-	(is (= (:body response7) (:body response8)))))))
+	(is (= (get-in response6 [:body :after])
+	       (get-in response7 [:body :after])))))))
 
 (deftest test-remove-session
   (let [response1 (app {:uri "/change"})
@@ -64,9 +72,9 @@
 			:cookies {"ring-session" {:value sess-key}}})
 	response3 (app {:uri "/stay"
 			:cookies {"ring-session" {:value sess-key}}})]
-    (is (:body response1))
+    (is (get-in response1 [:body :after]))
     (is (nil? (get-in response2 [:headers "Set-Cookie"])))
-    (is (nil? (:body response3)))))
+    (is (nil? (get-in response3 [:body :before])))))
 
 (deftest test-no-session
   (let [response1 (app {:uri "/stay"})]
