@@ -8,13 +8,16 @@
   (condp = (:uri req)
       "/change" (let [v (.toString (Math/random))]
 		  {:session {:myvalue v}
-		   :body {:before (-> req :session :myvalue)
-			  :after v}})
-      "/stay"   {:body {:before (-> req :session :myvalue)
-			:after (-> req :session :myvalue)}}
+		   :body {:before (get-in req [:session :myvalue])
+			  :after v
+			  :timestamp (get-in req [:session :session_timestamp])}})
+      "/stay"   {:body {:before (get-in req [:session :myvalue])
+			:after (get-in req [:session :myvalue])
+			:timestamp (get-in req [:session :session_timestamp])}}
       "/remove" {:session nil
-		 :body {:before (-> req :session :myvalue)
-			:after nil}}))
+		 :body {:before (get-in req [:session :myvalue])
+			:after nil
+			:timestamp (get-in req [:session :session_timestamp])}}))
 
 (def app (-> handler
 	     (wrap-session-expiry 2)
@@ -62,6 +65,8 @@
       (Thread/sleep 1500)
       (let [response7 (app {:uri "/stay"
 			    :cookies {"ring-session" {:value sess-key}}})]
+	(is (not= (get-in response6 [:body :timestamp])
+		  (get-in response7 [:body :timestamp])))
 	(is (= (get-in response6 [:body :after])
 	       (get-in response7 [:body :after])))))))
 
