@@ -72,8 +72,8 @@
 			  :cookies {"ring-session" {:value sess-key}}})]
       (is (not= (-> response1 :body :timestamp)
 		(-> response2 :body :timestamp)))
-      (is (= (-> response6 :body :after)
-	     (-> response7 :body :after))))))
+      (is (= (-> response1 :body :after)
+	     (-> response2 :body :after))))))
 
 (deftest test-remove-session
   (let [response1 (app {:uri "/change"})
